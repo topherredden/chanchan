@@ -1,7 +1,7 @@
 package main
 
 import (
-	//"flag"
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -19,15 +19,15 @@ import (
 var DBFile string = "./cc.db"
 //var MainChannelID string = "203238995117867008" //#japanesefromzero
 var MainChannelID string = "365484608671842304" //#area51
-var adminID string = "85817573932814336"
-//var Token string = "MzA3MTY5NzgyNTgxNDI4MjI0.DLb3Dg.C2d3iA7Of2-AHIJ7Xzg9Gpp0Zys" //chanchan
-var Token string = "MzY4MTkxNjI5MzkzMTMzNTY4.DMGYwg._DbSlminNLr8jd7FKu0jxt8mLIE" //chanchan-dev
+var Token string
+var adminID string
 
 func init() {
     log.Printf("Starting up...")
 
-	//flag.StringVar(&Token, "t", "", "Bot Token")
-	//flag.Parse()
+	flag.StringVar(&Token, "t", "", "Bot Token")
+    flag.StringVar(&adminID, "admin", "", "AdminID")
+	flag.Parse()
 
     db, err := sql.Open("sqlite3", DBFile)
     if err != nil {
