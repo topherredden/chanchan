@@ -1,4 +1,4 @@
-package chanchan
+package main
 
 import (
 	"flag"
