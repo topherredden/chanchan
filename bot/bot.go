@@ -1,4 +1,4 @@
-package main
+package bot
 
 import (
 	"github.com/bwmarrin/discordgo"
@@ -11,8 +11,8 @@ import (
 type BotCommandState struct {
 	cmd string
 	args []string
-	argText string
-	authorID string
+	ArgText string
+	AuthorID string
 	channelID string
 	argCursor int
 	botCommand *BotCommand
@@ -76,12 +76,12 @@ func (state *BotCommandState) ParseText(v *string)(err error) {
 		return
 	}
 
-	*v = state.argText
+	*v = state.ArgText
 	return
 }
 
 func (state *BotCommandState) IsAdmin()(isAdmin bool, err error) {
-	isAdmin, err = BotIsAdmin(state.authorID)
+	isAdmin, err = BotIsAdmin(state.AuthorID)
 	return
 }
 
@@ -208,8 +208,8 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	state := &BotCommandState {
 		cmd: command[0],
 		args: command[1:],
-		argText: argText,
-		authorID: m.Author.ID,
+		ArgText: argText,
+		AuthorID: m.Author.ID,
 		channelID: m.ChannelID,
 		argCursor: 0,
 		botCommand: cmds[command[0]],

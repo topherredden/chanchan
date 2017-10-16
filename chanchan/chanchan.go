@@ -7,6 +7,8 @@ import (
 	"os/signal"
 	"syscall"
     "log"
+    "github.com/topherredden/chanchan/bot"
+	"github.com/topherredden/chanchan/kanji"
 )
 
 var Token string
@@ -22,9 +24,9 @@ func init() {
 }
 
 func main() {
-	BotOpen(Token, adminID)
+	bot.BotOpen(Token, adminID)
 
-	KanjiCommands()
+	kanji.KanjiCommands()
 
 	// Wait here until CTRL-C or other term signal is received.
 	fmt.Println("Bot is now running.  Press CTRL-C to exit.")
@@ -32,6 +34,6 @@ func main() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
 
-    BotClose()
+    bot.BotClose()
 }
 

@@ -1,4 +1,4 @@
-package main
+package kanji
 
 import (
 	"log"
@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
 	"time"
+	"github.com/topherredden/chanchan/bot"
 )
 
 var DBFile string = "./cc.db"
@@ -20,22 +21,22 @@ func KanjiCommands()() {
 	}
 	defer db.Close()
 
-	BotAddCommand("!count", CountCmd, "!count", true)
-	BotAddCommand("!unregister", UnregisterCmd, "!unregister", false)
-	BotAddCommand("!kanji", KanjiCmd, "!kanji", false)
-	BotAddCommand("!status", StatusCmd, "!status", false)
-	BotAddCommand("!register", RegisterCmd, "!register <kanjigoal>", false)
-	BotAddCommand("!checkin", CheckinCmd, "!checkin <kanji>", false)
+	bot.BotAddCommand("!count", CountCmd, "!count", true)
+	bot.BotAddCommand("!unregister", UnregisterCmd, "!unregister", false)
+	bot.BotAddCommand("!kanji", KanjiCmd, "!kanji", false)
+	bot.BotAddCommand("!status", StatusCmd, "!status", false)
+	bot.BotAddCommand("!register", RegisterCmd, "!register <kanjigoal>", false)
+	bot.BotAddCommand("!checkin", CheckinCmd, "!checkin <kanji>", false)
 }
 
-func CountCmd(state *BotCommandState)(err error) {
+func CountCmd(state *bot.BotCommandState)(err error) {
 	userCount := getUserCount()
 	state.SendReply(fmt.Sprintf("There are %d registered users.", userCount))
 	return
 }
 
-func UnregisterCmd(state *BotCommandState)(err error) {
-	sqlCmd := fmt.Sprintf("delete from users where id=%s", state.authorID)
+func UnregisterCmd(state *bot.BotCommandState)(err error) {
+	sqlCmd := fmt.Sprintf("delete from users where id=%s", state.AuthorID)
 	_, err = dbExec(sqlCmd)
 	if err != nil {
 		return
@@ -45,36 +46,36 @@ func UnregisterCmd(state *BotCommandState)(err error) {
 	return
 }
 
-func KanjiCmd(state *BotCommandState)(err error) {
-	if !isRegistered(state.authorID) {
+func KanjiCmd(state *bot.BotCommandState)(err error) {
+	if !isRegistered(state.AuthorID) {
 		return
 	}
 
-	kanjiString := getKanjiString(state.authorID)
+	kanjiString := getKanjiString(state.AuthorID)
 	state.SendReply(fmt.Sprintf("You have learned the following Kanji: %s", kanjiString))
 	return
 }
 
-func StatusCmd(state *BotCommandState)(err error) {
-	if !isRegistered(state.authorID) {
+func StatusCmd(state *bot.BotCommandState)(err error) {
+	if !isRegistered(state.AuthorID) {
 		return
 	}
 
-	var kanjiCount int = getKanjiCount(state.authorID)
-	var kanjiGoal int = getUserGoal(state.authorID)
+	var kanjiCount int = getKanjiCount(state.AuthorID)
+	var kanjiGoal int = getUserGoal(state.AuthorID)
 	var kanjiProgress int = int((float32(kanjiCount) / float32(kanjiGoal)) * 100.0)
 
 	state.SendReply(fmt.Sprintf("%d Kanji learned out of a goal of %d (%d%%).", kanjiCount, kanjiGoal, kanjiProgress))
 	return
 }
 
-func CheckinCmd(state *BotCommandState)(err error) {
-	if !isRegistered(state.authorID) {
+func CheckinCmd(state *bot.BotCommandState)(err error) {
+	if !isRegistered(state.AuthorID) {
 		return
 	}
 
 	// Get whole command and parse it for Kanji
-	runes := []rune(state.argText)
+	runes := []rune(state.ArgText)
 
 	// Check for each kanji and add to list
 	addKanji := []rune{}
@@ -93,7 +94,7 @@ func CheckinCmd(state *BotCommandState)(err error) {
 	defer db.Close()
 
 	log.Println("Checking for duplicates...")
-	sqlCmd := fmt.Sprintf("select kanji from checkins where id=%s", state.authorID)
+	sqlCmd := fmt.Sprintf("select kanji from checkins where id=%s", state.AuthorID)
 	rows, err := db.Query(sqlCmd)
 	if err != nil {
 		log.Fatal(err)
@@ -159,7 +160,7 @@ func CheckinCmd(state *BotCommandState)(err error) {
 	var unixTime int64 = time.Now().Unix()
 
 	log.Println("Inserting new kanji...")
-	sqlCmd = fmt.Sprintf("insert into checkins(id, kanji, date, count) values('%s', '%s', %d, %d)", state.authorID, newKanjiString, unixTime, len(newKanji))
+	sqlCmd = fmt.Sprintf("insert into checkins(id, kanji, date, count) values('%s', '%s', %d, %d)", state.AuthorID, newKanjiString, unixTime, len(newKanji))
 	_, err = db.Exec(sqlCmd)
 	if err != nil {
 		log.Fatal(err)
@@ -167,16 +168,16 @@ func CheckinCmd(state *BotCommandState)(err error) {
 	}
 
 	var kanjiCount int = len(newKanji) + len(oldKanji)
-	var kanjiGoal int = getUserGoal(state.authorID)
+	var kanjiGoal int = getUserGoal(state.AuthorID)
 	var kanjiProgress int = int((float32(kanjiCount) / float32(kanjiGoal)) * 100.0)
 
 	state.SendReply(fmt.Sprintf("Successfully checked-in %d New Kanji (%s).\n\n%d/%d %d%% of Goal.", len(newKanji), newKanjiString, kanjiCount, kanjiGoal, kanjiProgress))
-	state.SendChannel(MainChannelID, fmt.Sprintf("<@%s> just checked-in with %d New Kanji (%d%% of Goal). Keep it up!", state.authorID, len(newKanji), kanjiProgress))
+	state.SendChannel(MainChannelID, fmt.Sprintf("<@%s> just checked-in with %d New Kanji (%d%% of Goal). Keep it up!", state.AuthorID, len(newKanji), kanjiProgress))
 
 	return
 }
 
-func RegisterCmd(state *BotCommandState)(err error) {
+func RegisterCmd(state *bot.BotCommandState)(err error) {
 	var kanjiGoal int64
 	err = state.ParseInt(&kanjiGoal)
 	if err != nil {
@@ -191,14 +192,14 @@ func RegisterCmd(state *BotCommandState)(err error) {
 	defer db.Close()
 
 	// Check user doesn't exist
-	if isRegistered(state.authorID) {
+	if isRegistered(state.AuthorID) {
 		state.SendReply(fmt.Sprintf("You have already registered!\n\nTo unregister, use !unregister."))
 		return
 	}
 
 	// Add user to DB
-	sqlCmd := fmt.Sprintf("insert into users(id, kanjigoal) values('%s', %d)", state.authorID, kanjiGoal)
-	log.Printf("Inserting user: %s", state.authorID)
+	sqlCmd := fmt.Sprintf("insert into users(id, kanjigoal) values('%s', %d)", state.AuthorID, kanjiGoal)
+	log.Printf("Inserting user: %s", state.AuthorID)
 	_, err = dbExec(sqlCmd)
 	if err != nil {
 		return
@@ -206,7 +207,7 @@ func RegisterCmd(state *BotCommandState)(err error) {
 
 	// Send Positive Response
 	state.SendReply(fmt.Sprintf("You have been registered for %d Kanji in the Kanji Challenge!\n\nUse !checkin with any Kanji to add those to your learned Kanji. (e.g. !checkin 食日)", kanjiGoal))
-	state.SendChannel(MainChannelID, fmt.Sprintf("<@%s> has been registered for %d Kanji in the Kanji Challenge!", state.authorID, kanjiGoal))
+	state.SendChannel(MainChannelID, fmt.Sprintf("<@%s> has been registered for %d Kanji in the Kanji Challenge!", state.AuthorID, kanjiGoal))
 
 	return
 }
