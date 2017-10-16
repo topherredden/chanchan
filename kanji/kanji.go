@@ -10,8 +10,8 @@ import (
 )
 
 var DBFile string = "./cc.db"
-//var MainChannelID string = "203238995117867008" //#japanesefromzero
-var MainChannelID string = "365484608671842304" //#area51
+var MainChannelID string = "203238995117867008" //#japanesefromzero
+//var MainChannelID string = "365484608671842304" //#area51
 
 func KanjiCommands()() {
 	// Make sure DB loads
