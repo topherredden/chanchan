@@ -81,7 +81,18 @@ func CheckinCmd(state *bot.BotCommandState)(err error) {
 	addKanji := []rune{}
 	for _, r := range runes {
 		if isKanji(r) {
-			addKanji = append(addKanji, r)
+			// Only add if not duplicate
+			duplicate := false
+			for _, k := range addKanji {
+				if r == k {
+					duplicate = true
+					break
+				}
+			}
+
+			if !duplicate {
+				addKanji = append(addKanji, r)
+			}
 		}
 	}
 

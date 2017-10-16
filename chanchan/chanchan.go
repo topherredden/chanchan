@@ -20,7 +20,6 @@ func init() {
 	flag.StringVar(&Token, "t", "", "Bot Token")
     flag.StringVar(&adminID, "admin", "", "AdminID")
 	flag.Parse()
-
 }
 
 func main() {
