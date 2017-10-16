@@ -22,6 +22,7 @@ func KanjiCommands()() {
 	defer db.Close()
 
 	bot.BotAddCommand("!count", CountCmd, "!count", true)
+	bot.BotAddCommand("!purge", PurgeCmd, "!purge", true)
 	bot.BotAddCommand("!unregister", UnregisterCmd, "!unregister", false)
 	bot.BotAddCommand("!kanji", KanjiCmd, "!kanji", false)
 	bot.BotAddCommand("!status", StatusCmd, "!status", false)
@@ -32,6 +33,85 @@ func KanjiCommands()() {
 func CountCmd(state *bot.BotCommandState)(err error) {
 	userCount := getUserCount()
 	state.SendReply(fmt.Sprintf("There are %d registered users.", userCount))
+	return
+}
+
+func PurgeCmd(state *bot.BotCommandState)(err error) {
+	db, err := sql.Open("sqlite3", DBFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	// Go through each checkin
+	sqlCmd := fmt.Sprintf("SELECT kanji, checkin_id, id FROM checkins")
+	rows, err := db.Query(sqlCmd)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	type DuplicateEntry struct {
+		newKanji string
+		checkinID  int
+		userID string
+		duplicateCount int
+	}
+
+	var duplicateArray []DuplicateEntry
+
+	for rows.Next() {
+		var kanji string
+		var checkinID int
+		var userID string
+		err = rows.Scan(&kanji, &checkinID, &userID)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		kanjiArray := []rune(kanji)
+		newKanji := []rune{}
+
+		for _, k := range kanjiArray {
+			duplicate := false
+			for _, j := range newKanji {
+				if k == j {
+					duplicate = true
+					break
+				}
+			}
+
+			if !duplicate {
+				newKanji = append(newKanji, k)
+			}
+		}
+
+		duplicates := len(kanjiArray) - len(newKanji)
+		if duplicates > 0 {
+			var duplicateEntry DuplicateEntry
+			duplicateEntry.newKanji = string(newKanji)
+			duplicateEntry.checkinID = checkinID
+			duplicateEntry.duplicateCount = duplicates
+			duplicateEntry.userID = userID
+
+			duplicateArray = append(duplicateArray, duplicateEntry)
+		}
+	}
+	err = rows.Err()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	rows.Close()
+
+	// Fix duplicates
+	for _, v := range duplicateArray {
+		state.SendReply(fmt.Sprintf("Removed %d duplicates from %s checkinid %d", v.duplicateCount, v.userID, v.checkinID))
+
+		// Write back
+		sqlCmd := fmt.Sprintf("UPDATE checkins SET kanji='%s' WHERE checkin_id=%d", v.newKanji, v.checkinID)
+		dbExec(sqlCmd)
+	}
+
 	return
 }
 
